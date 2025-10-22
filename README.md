@@ -7,7 +7,7 @@
 
 ## 📋 Sobre o Sistema
 
-O **Sistema IASO** (*Inteligência de Atendimento via Sistema de Orientação*) é uma solução moderna de autodiscagem desenvolvida para otimizar o agendamento e confirmação de exames na rede pública de saúde.
+O **Sistema IASO** (*Inteligência de Atendimento via Sistema de Orientação*) é uma solução moderna de gerenciamente de alcance de contatos, desenvolvida para otimizar o agendamento e confirmação de exames.
 
 ### 🎯 Objetivo Principal
 Automatizar o contato com usuários para:
@@ -15,19 +15,3 @@ Automatizar o contato com usuários para:
 - ✅ Confirmação de vagas de atendimento
 - ✅ Reagendamento de consultas
 - ✅ Redução de faltas e ociosidade na rede
-
-## 🏗 Arquitetura do Sistema
-
-### Backend - Python (`/backend`)
-```python
-# Estrutura principal
-iaso-backend/
-├── app/
-│   ├── models/          # Modelos de dados
-│   ├── services/        # Lógica de negócio
-│   ├── api/            # Endpoints REST
-│   └── core/           # Configurações
-├── scripts/
-│   ├── dialer.py       # Gerenciador de discagens
-│   └── scheduler.py    # Agendador de tarefas
-└── requirements.txt
