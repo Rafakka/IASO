@@ -1,60 +1,49 @@
 import pandas as pd
 from typing import List, Tuple, Dict
-from .models import Contact
+from src.core.models import Contact
 
 class ExcelProcessor:
     def __init__(self):
-        self.required_columns = ['paciente']
+        self.required_columns = ['paciente']  # paciente is REQUIRED
         self.phone_columns = ['tel.recado', 'tel.celular']
         
     def load_contacts_from_excel(self, file_path: str) -> Tuple[List[Contact], List[Dict]]:
         """
+        Load contacts from Excel file
+        - REQUIRES 'paciente' column to exist in the file
+        - Skips individual rows with missing/invalid data
         
         Returns:
             Tuple of (valid_contacts, error_entries)
-            - valid_contacts: List of Contact objects ready for processing
-            - error_entries: List of dicts with error information for logging
         """
         try:
             df = pd.read_excel(file_path)
             
             missing_columns = [col for col in self.required_columns if col not in df.columns]
             if missing_columns:
-                raise ValueError(f"Missing required columns: {missing_columns}")
+                raise ValueError(f"Missing required column: 'paciente'. File must have a 'paciente' column.")
             
             available_phone_columns = [col for col in self.phone_columns if col in df.columns]
             if not available_phone_columns:
-                raise ValueError(f"No phone columns found. Need one of: {self.phone_columns}")
+                print(f"⚠️  Warning: No phone columns found. Looking for: {self.phone_columns}")
             
             valid_contacts = []
             error_entries = []
             
             for index, row in df.iterrows():
                 try:
-                    phone, phone_error = self._get_phone_number_with_fallback(row)
+                    contact, error = self._process_single_row(row, index, available_phone_columns)
                     
-                    if phone_error:
-                        error_entries.append({
-                            'row_index': index + 2,
-                            'name': str(row['paciente']).strip() if 'paciente' in row else 'Unknown',
-                            'phone_attempted': self._get_phone_attempt(row),
-                            'error': phone_error
-                        })
-                        continue
-                    
-                    contact = Contact(
-                        name=str(row['paciente']).strip(),
-                        phone=phone,
-                        message=str(row.get('message', 'Hello from automated system')).strip(),
-                        message_type=str(row.get('message_type', 'SMS')).upper()
-                    )
-                    valid_contacts.append(contact)
-                    
+                    if error:
+                        error_entries.append(error)
+                    else:
+                        valid_contacts.append(contact)
+                        
                 except Exception as e:
                     error_entries.append({
                         'row_index': index + 2,
-                        'name': str(row['paciente']).strip() if 'paciente' in row else 'Unknown',
-                        'phone_attempted': self._get_phone_attempt(row),
+                        'name': 'Unknown',
+                        'phone_attempted': 'Unknown',
                         'error': f"Unexpected error: {str(e)}"
                     })
                     continue
@@ -64,15 +53,47 @@ class ExcelProcessor:
         except Exception as e:
             raise Exception(f"Excel processing failed: {str(e)}")
     
-    def _get_phone_number_with_fallback(self, row) -> Tuple[str, str]:
+    def _process_single_row(self, row, row_index: int, available_phone_columns: List[str]) -> Tuple[Contact, Dict]:
         """
-        Returns:
-            Tuple of (phone_number, error_message)
-            - If valid: (phone_number, None)
-            - If invalid: (None, error_message)
+        Process a single row, return (Contact, error_dict)
+        If Contact is None, the error_dict contains the error details
         """
-        for phone_column in self.phone_columns:
-            if phone_column in row and pd.notna(row[phone_column]):
+        if pd.isna(row['paciente']) or not str(row['paciente']).strip() or str(row['paciente']).strip() == 'nan':
+            return None, {
+                'row_index': row_index + 2,
+                'name': 'Missing',
+                'phone_attempted': self._get_phone_attempt(row),
+                'error': "Empty or missing patient name in 'paciente' column"
+            }
+        
+        name = str(row['paciente']).strip()
+        
+        phone, phone_error = self._get_phone_number_with_fallback(row, available_phone_columns)
+        
+        if phone_error:
+            return None, {
+                'row_index': row_index + 2,
+                'name': name,
+                'phone_attempted': self._get_phone_attempt(row),
+                'error': phone_error
+            }
+        
+        contact = Contact(
+            name=name,
+            phone=phone,
+            message=str(row.get('message', 'Hello from automated system')).strip(),
+            message_type=str(row.get('message_type', 'SMS')).upper()
+        )
+        
+        return contact, None
+    
+    def _get_phone_number_with_fallback(self, row, available_phone_columns: List[str]) -> Tuple[str, str]:
+        """
+        Get phone number with fallback logic and validation
+        Only tries the phone columns that actually exist in the Excel file
+        """
+        for phone_column in ['tel.recado', 'tel.celular']:
+            if phone_column in available_phone_columns and phone_column in row and pd.notna(row[phone_column]):
                 phone_str = str(row[phone_column]).strip()
                 
                 if not phone_str or phone_str == 'nan':
@@ -85,9 +106,15 @@ class ExcelProcessor:
                     return phone_str, None
         
         attempted_phones = self._get_phone_attempt(row)
-        return None, f"No valid phone number found. Attempted: {attempted_phones}"
+        return None, f"No valid phone number found. Available columns: {available_phone_columns}"
     
     def validate_phone_format(self, phone: str) -> str:
+        """
+        Validate Brazilian phone format: '11 - 9999 - 9999'
+        
+        Returns:
+            str: Error message if invalid, None if valid
+        """
         import re
         
         cleaned = re.sub(r'\s+', ' ', phone.strip())
@@ -118,7 +145,7 @@ class ExcelProcessor:
     def _get_phone_attempt(self, row) -> str:
         """Get string representation of phone attempts for error reporting"""
         attempts = []
-        for col in self.phone_columns:
+        for col in ['tel.recado', 'tel.celular']:
             if col in row and pd.notna(row[col]):
                 phone_str = str(row[col]).strip()
                 if phone_str and phone_str != 'nan':

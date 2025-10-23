@@ -1,10 +1,11 @@
 from typing import Tuple, List, Dict
 from datetime import datetime
 import time
-from ..core.models import Contact, ProcessingResult, BatchResult
-from ..core.api_client import KotlinGatewayClient
-from ..core.excel_processor import ExcelProcessor
-from ..utils.logger import get_logger
+
+from src.core.models import Contact, ProcessingResult, BatchResult
+from src.core.api_client import KotlinGatewayClient
+from src.core.excel_processor import ExcelProcessor
+from src.utils.logger import get_logger
 
 class BatchProcessor:
     def __init__(self, gateway_url: str = "http://localhost:8080"):
