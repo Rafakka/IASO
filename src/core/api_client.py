@@ -1,5 +1,5 @@
 import requests
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 from .models import Contact, ProcessingResult
 import json
 from datetime import datetime
