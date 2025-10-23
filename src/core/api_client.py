@@ -75,11 +75,10 @@ class KotlinGatewayClient:
             response = self.session.post(
                 f"{self.base_url}/api/sms/batch",
                 json=payload,
-                timeout=self.timeout * 2  # Longer timeout for batches
+                timeout=self.timeout * 2
             )
             
             if response.status_code == 200:
-                # Parse batch response
                 results = []
                 response_data = response.json()
                 
@@ -94,7 +93,6 @@ class KotlinGatewayClient:
                 
                 return results
             else:
-                # If batch fails, mark all as failed
                 return [
                     ProcessingResult(
                         contact=contact,

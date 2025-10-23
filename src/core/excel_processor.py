@@ -4,7 +4,7 @@ from src.core.models import Contact
 
 class ExcelProcessor:
     def __init__(self):
-        self.required_columns = ['paciente']  # paciente is REQUIRED
+        self.required_columns = ['paciente']
         self.phone_columns = ['tel.recado', 'tel.celular']
         
     def load_contacts_from_excel(self, file_path: str) -> Tuple[List[Contact], List[Dict]]:
